@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>習い事の時間割・費用シミュレーション｜送迎の重なりと卒業までの総額がわかる</title>
+<meta name="description" content="子どもの習い事の曜日・時間・月謝・送迎を入れると、週の時間割、送迎の重なり、月額・年額・小学校卒業までの総額、全国調査とのくらべを1ページで表示します。">
+<style>
+:root{
+  --bg:#fbf7f1; --card:#ffffff; --ink:#3d3a35; --sub:#7a746a; --line:#ece4d8;
+  --accent:#d9825b; --accent-soft:#fbe9df; --ok:#4f9a83; --ok-soft:#e3f2ec;
+  --warn:#d2564a; --warn-soft:#fde8e5; --sim:#7a6fc0; --sim-soft:#eeebfa;
+  --radius:16px; --shadow:0 2px 10px rgba(80,60,30,.06);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;line-height:1.65;font-size:16px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 96px}
+header{padding:22px 0 8px}
+h1{font-size:1.45rem;margin:0 0 4px;letter-spacing:.02em}
+.lead{color:var(--sub);font-size:.92rem;margin:0}
+nav.tabs{position:sticky;top:0;z-index:20;background:rgba(251,247,241,.95);backdrop-filter:blur(6px);margin:10px -16px 0;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav.tabs a{flex:0 0 auto;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.88rem}
+nav.tabs a:active{background:var(--accent-soft)}
+section{margin-top:22px}
+h2{font-size:1.12rem;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+h2 .num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:.85rem}
+h3{font-size:1rem;margin:0 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.muted{color:var(--sub);font-size:.85rem}
+.small{font-size:.8rem}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.ghost{background:transparent}
+button.danger{color:var(--warn);border-color:#f2c9c4}
+button.tiny{padding:4px 10px;font-size:.82rem;border-radius:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+label{display:block;font-size:.85rem;color:var(--sub);margin:10px 0 4px}
+input,select{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fffdfa;color:var(--ink)}
+input[type=checkbox]{width:auto;transform:scale(1.25);margin-right:8px;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px}
+.check{display:flex;align-items:center;font-size:.92rem;color:var(--ink);margin:10px 0 0}
+.kidhead{display:flex;align-items:center;gap:8px}
+.dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto}
+.lesson{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px dashed var(--line)}
+.lesson:first-of-type{border-top:none}
+.lesson .bar{width:5px;align-self:stretch;border-radius:3px}
+.lesson .body{flex:1;min-width:0}
+.lesson .title{font-weight:600}
+.badge{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:999px;margin-left:4px;vertical-align:2px}
+.badge.sim{background:var(--sim-soft);color:var(--sim)}
+.badge.stop{background:#eee;color:#777}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.lesson.stopped .title,.lesson.stopped .meta{text-decoration:line-through;color:#9a948a}
+.meta{font-size:.84rem;color:var(--sub)}
+.empty{color:var(--sub);font-size:.9rem;text-align:center;padding:14px 0}
+/* switch */
+.switch{display:flex;align-items:center;gap:10px;background:var(--sim-soft);border:1px solid #ddd7f3;border-radius:14px;padding:10px 12px;font-size:.9rem}
+.switch input{transform:scale(1.4);accent-color:var(--sim)}
+/* timetable */
+.tt-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.82rem;margin-bottom:8px}
+.tt-legend span{display:inline-flex;align-items:center;gap:5px}
+.tt{display:grid;grid-template-columns:34px repeat(7,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.tt .dh{font-size:.8rem;text-align:center;padding:5px 0;background:#f6efe5;border-left:1px solid var(--line);font-weight:600}
+.tt .dh.sat{color:#4a78b5}.tt .dh.sun{color:#c0584d}
+.tt .dh.free{background:var(--ok-soft);color:var(--ok)}
+.tt .corner{background:#f6efe5}
+.tt .hours{position:relative;font-size:.68rem;color:var(--sub)}
+.tt .hours div{position:absolute;right:4px;transform:translateY(-50%)}
+.tt .col{position:relative;border-left:1px solid var(--line)}
+.tt .hl{position:absolute;left:0;right:0;border-top:1px solid #f1ebe2}
+.tt .hl.half{border-top-style:dashed;border-color:#f6f1ea}
+.blk{position:absolute;border-radius:6px;padding:2px 3px;font-size:.66rem;line-height:1.2;color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.blk b{display:block;font-size:.7rem}
+.blk.trial{border:2px dashed rgba(255,255,255,.9);opacity:.85}
+.blk.conf{outline:3px solid var(--warn);outline-offset:-1px}
+.pick{position:absolute;left:1px;width:4px;border-radius:2px;opacity:.55}
+.ov{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,rgba(210,86,74,.18) 0 4px,rgba(210,86,74,.05) 4px 8px);border-top:1px solid var(--warn);border-bottom:1px solid var(--warn);pointer-events:none}
+.alert{background:var(--warn-soft);border:1px solid #f2c9c4;color:#8c3a31;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:.88rem}
+.alert b{color:var(--warn)}
+.okbox{background:var(--ok-soft);border:1px solid #cfe7dd;color:#2f6b58;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:.88rem}
+/* stats */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.stat{background:#fcf8f2;border-radius:12px;padding:8px 10px}
+.stat .k{font-size:.76rem;color:var(--sub)}
+.stat .v{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:.75rem;font-weight:400;color:var(--sub)}
+.stat.wide{grid-column:1/-1}
+.stat .d{font-size:.78rem;color:var(--sim);font-weight:600}
+.family{border:2px solid var(--accent-soft)}
+/* compare */
+.cmp{margin:10px 0 4px}
+.cmp .lbl{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px}
+.track{height:12px;background:#f3ede4;border-radius:6px;overflow:hidden;margin-bottom:6px}
+.fill{height:100%;border-radius:6px}
+.note{font-size:.8rem;color:var(--sub);background:#faf6ef;border-radius:10px;padding:8px 10px;margin-top:8px}
+.src li{margin-bottom:6px;font-size:.84rem}
+.src a{color:#a5583a}
+/* sheet */
+.sheet-bg{position:fixed;inset:0;background:rgba(40,30,20,.35);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.sheet-bg.open{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:640px){.sheet-bg{align-items:center}.sheet{border-radius:20px}}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.days label{margin:0;text-align:center;border:1px solid var(--line);border-radius:10px;padding:7px 0;background:#fff;color:var(--ink);font-size:.9rem;cursor:pointer;user-select:none}
+.days input{display:none}
+.days label.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.err{color:var(--warn);font-size:.85rem;min-height:1.2em;margin-top:6px}
+.diff{border:2px solid #ddd7f3;background:#fdfcff}
+.diff table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+.diff th,.diff td{padding:6px 4px;border-bottom:1px solid #eeeaf8;text-align:right}
+.diff th:first-child,.diff td:first-child{text-align:left;white-space:normal}.diff td,.diff th{white-space:nowrap}.diff table{font-size:.82rem}
+.diff .up{color:var(--warn)}.diff .down{color:var(--ok)}
+footer{margin-top:28px;color:var(--sub);font-size:.78rem;text-align:center}
+@media(max-width:380px){.grid3{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr}}
+@media print{nav.tabs,.noprint,button{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>習い事ぜんぶ見える化</h1>
+  <p class="lead">曜日・時間・月謝・送迎を入れると、週の時間割と「卒業までいくら？」がまとめて出ます。データはこの端末の中だけに保存されます。</p>
+</header>
+<nav class="tabs">
+  <a href="#s-input">① 登録</a><a href="#s-tt">② 時間割</a><a href="#s-sum">③ 集計</a><a href="#s-cmp">④ 調査とくらべる</a><a href="#s-src">出典</a>
+</nav>
+
+<section id="s-input">
+  <h2><span class="num">1</span>子どもと習い事を登録</h2>
+  <div id="kidsArea"></div>
+  <div class="row noprint">
+    <button class="primary" id="addKid">＋ 子どもを追加</button>
+    <span class="spacer"></span>
+    <button class="ghost tiny" id="sample">例を入れてみる</button>
+    <button class="ghost tiny danger" id="reset">ぜんぶ消す</button>
+  </div>
+</section>
+
+<section id="s-tt">
+  <h2><span class="num">2</span>週の時間割</h2>
+  <label class="switch noprint"><input type="checkbox" id="simView"><span><b>「増やしたら／やめたら」を反映して見る</b><br><span class="small">登録画面の「仮で追加」「やめたら？」が時間割と集計に反映されます</span></span></label>
+  <div class="card" style="margin-top:10px">
+    <div class="tt-legend" id="ttLegend"></div>
+    <div id="tt"></div>
+    <div id="conflicts"></div>
+  </div>
+</section>
+
+<section id="s-sum">
+  <h2><span class="num">3</span>集計</h2>
+  <div id="diffArea"></div>
+  <div id="sumArea"></div>
+</section>
+
+<section id="s-cmp">
+  <h2><span class="num">4</span>全国の調査とくらべる</h2>
+  <div id="cmpArea"></div>
+  <div class="note">調査の平均には「習い事をしていない子」も含まれます。地域・家庭の事情で大きく変わるので、多い・少ないの良し悪しを決めるものではありません。「話し合いのきっかけ」としてお使いください。</div>
+</section>
+
+<section id="s-src">
+  <h2>使っている数字の出典</h2>
+  <div class="card">
+    <ol class="src">
+      <li>文部科学省「令和5年度 子供の学習費調査」結果の概要（令和6年12月25日公表、令和8年1月16日訂正版）表5「男女別・学年別学校外活動費」より、<b>公立小学校</b>の学年別「その他の学校外活動費」（習い事・体験活動など）と「補助学習費」（塾・通信教育・家庭教師など）の年額。<br><a href="https://www.mext.go.jp/b_menu/toukei/chousa03/gakushuuhi/kekka/k_detail/mext_00002.html" target="_blank" rel="noopener">文部科学省 子供の学習費調査 令和5年度結果</a></li>
+      <li>東京大学社会科学研究所・ベネッセ教育総合研究所「子どもの生活と学びに関する親子調査」2015-23 データ集（2024年12月）：小学生の約8割が習い事をしている（学習塾は除く）。<br><a href="https://www.benesse.jp/berd/special/datachild/pdf/datashu07.pdf" target="_blank" rel="noopener">学校外の学びの状況 習い事・学習塾に関するデータ集（PDF）</a></li>
+      <li>ベネッセコーポレーション「習い事に関する調査」（2021年6月、3〜12歳の子の保護者1,854人）：習い事の数は「1つ」が約5割、「2つ」が約3割。<br><a href="https://voix.jp/edu/?p=18622" target="_blank" rel="noopener">調査結果の紹介記事（voix）</a></li>
+      <li>「年齢×1時間」「週1〜2日は休む」：スポーツ活動の時間とけがの関係について、日本体育協会の文献研究・米国小児科学会の報告などを紹介した記事より（主にスポーツ系の目安）。<br><a href="https://eleschool-compass.com/naraigoto/karada/shu-nankai.php" target="_blank" rel="noopener">スクールコンパス「習い事は週何回まで？」</a></li>
+    </ol>
+    <p class="muted">※出典を確認できなかった数字（「月謝の平均○円」などのネット上の数字）は使っていません。</p>
+  </div>
+</section>
+
+<footer>習い事ぜんぶ見える化 ／ データは端末内（localStorage）に保存。サーバーには送信しません。</footer>
+</div>
+
+<!-- 子ども編集シート -->
+<div class="sheet-bg" id="kidSheet"><div class="sheet">
+  <h3 id="kidSheetTitle">子どもを追加</h3>
+  <label>名前（ニックネームでOK）</label><input id="kName" maxlength="12" placeholder="例：はると">
+  <label>学年（今年度）</label>
+  <select id="kGrade"><option value="1">小1</option><option value="2">小2</option><option value="3">小3</option><option value="4">小4</option><option value="5">小5</option><option value="6">小6</option></select>
+  <div class="err" id="kErr"></div>
+  <div class="row" style="margin-top:12px"><button class="danger" id="kDel">この子を削除</button><span class="spacer"></span><button id="kCancel">やめる</button><button class="primary" id="kSave">保存</button></div>
+</div></div>
+
+<!-- 習い事編集シート -->
+<div class="sheet-bg" id="lsSheet"><div class="sheet">
+  <h3 id="lsSheetTitle">習い事を追加</h3>
+  <label>だれの習い事？</label><select id="lKid"></select>
+  <div class="grid2">
+    <div><label>種類</label><select id="lType"></select></div>
+    <div><label>教室名など（任意）</label><input id="lName" maxlength="16" placeholder="例：駅前スイミング"></div>
+  </div>
+  <label>曜日（複数えらべます）</label>
+  <div class="days" id="lDays"></div>
+  <div class="grid2">
+    <div><label>開始</label><input type="time" id="lStart" step="300" value="16:00"></div>
+    <div><label>終了</label><input type="time" id="lEnd" step="300" value="17:00"></div>
+  </div>
+  <label>月謝（円／月）</label><input type="number" inputmode="numeric" id="lMonthly" min="0" step="100" placeholder="例：7000">
+  <div class="grid3">
+    <div><label>年会費（円／年）</label><input type="number" inputmode="numeric" id="lAnnual" min="0" step="100" placeholder="0"></div>
+    <div><label>道具・服（円／年）</label><input type="number" inputmode="numeric" id="lGear" min="0" step="100" placeholder="0"></div>
+    <div><label>入会金（これから払う分）</label><input type="number" inputmode="numeric" id="lEntry" min="0" step="100" placeholder="0"></div>
+  </div>
+  <div class="grid2">
+    <div><label>送迎する人（いなければ空欄）</label><input id="lWho" list="whoList" maxlength="10" placeholder="例：ママ"><datalist id="whoList"><option value="ママ"><option value="パパ"><option value="祖父母"></datalist></div>
+    <div><label>送迎 往復何分？</label><input type="number" inputmode="numeric" id="lMins" min="0" step="5" placeholder="例：20"></div>
+  </div>
+  <label class="check"><input type="checkbox" id="lWait">送迎した人がその場で待つ（付き添い）</label>
+  <label>場所（任意・同じ場所なら送迎の重なりとして数えません）</label><input id="lPlace" maxlength="16" placeholder="例：市民プール">
+  <label class="check"><input type="checkbox" id="lTrial">まだ通っていない（「1つ増やしたら」の仮追加）</label>
+  <div class="err" id="lErr"></div>
+  <div class="row" style="margin-top:12px"><button class="danger" id="lDel">削除</button><span class="spacer"></span><button id="lCancel">やめる</button><button class="primary" id="lSave">保存</button></div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='naraigoto-mieruka-v1';
+var DAYS=['月','火','水','木','金','土','日'];
+var COLORS=['#e07f6c','#4f9a90','#d9a441','#8a7cc4','#5f94c9'];
+var TYPES=[
+ {v:'水泳',c:'sport'},{v:'サッカー',c:'sport'},{v:'野球',c:'sport'},{v:'ダンス',c:'sport'},{v:'体操',c:'sport'},
+ {v:'武道（空手・柔道など）',c:'sport'},{v:'テニス・バスケなど球技',c:'sport'},{v:'その他スポーツ',c:'sport'},
+ {v:'ピアノ・楽器',c:'culture'},{v:'英語',c:'culture'},{v:'書道・習字',c:'culture'},{v:'そろばん',c:'culture'},
+ {v:'プログラミング',c:'culture'},{v:'絵・工作',c:'culture'},{v:'その他の習い事',c:'culture'},
+ {v:'学習塾',c:'study'},{v:'通信教育・家庭教師',c:'study'}
+];
+function typeCat(t){for(var i=0;i<TYPES.length;i++)if(TYPES[i].v===t)return TYPES[i].c;return 'culture';}
+/* 文部科学省 令和5年度子供の学習費調査（訂正版）表5 公立小学校 学年別（円／年） */
+var MEXT_SONOTA=[136278,145972,154523,154521,152220,120786];
+var MEXT_HOJO=[80572,65947,76470,116753,143318,186559];
+
+var state={kids:[],lessons:[],simView:false};
+function uid(){return Math.random().toString(36).slice(2,9);}
+function load(){try{var s=localStorage.getItem(KEY);if(s){var o=JSON.parse(s);if(o&&Array.isArray(o.kids)&&Array.isArray(o.lessons))state=o;}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function yen(n){return Math.round(n).toLocaleString('ja-JP')+'円';}
+function man(n){return n>=10000?(Math.round(n/1000)/10).toLocaleString('ja-JP')+'万円':yen(n);}
+function toMin(t){if(!t)return null;var p=t.split(':');return (+p[0])*60+(+p[1]);}
+function fmtT(m){var h=Math.floor(m/60),mm=m%60;return h+':'+(mm<10?'0':'')+mm;}
+function fmtDur(m){m=Math.round(m);var h=Math.floor(m/60),r=m%60;if(!h)return r+'分';return h+'時間'+(r?r+'分':'');}
+function num(v){var n=parseFloat(v);return isFinite(n)&&n>0?n:0;}
+function kidById(id){for(var i=0;i<state.kids.length;i++)if(state.kids[i].id===id)return state.kids[i];return null;}
+function kidColor(k){return k?COLORS[state.kids.indexOf(k)%COLORS.length]:'#999';}
+function lessonLabel(l){return l.name?l.name:l.type;}
+
+/* 対象の習い事：now=今通っているもの / sim=仮の変更後 */
+function active(mode){
+  return state.lessons.filter(function(l){
+    if(!kidById(l.kidId))return false;
+    if(mode==='now')return !l.trial;
+    return l.trial?true:!l.stop;
+  });
+}
+function hasSim(){return state.lessons.some(function(l){return l.trial||l.stop;});}
+function viewMode(){return state.simView?'sim':'now';}
+
+/* 卒業まで残り月数（年度は4月はじまり） */
+function monthsLeft(grade){
+  var m=new Date().getMonth()+1;
+  var left=m>=4?16-m:4-m;
+  return left+(6-grade)*12;
+}
+
+function calc(mode){
+  var ls=active(mode);
+  var res={kids:{},total:{week:0,monthly:0,yearly:0,grad:0,count:0},conf:[],pick:{},freeAll:[]};
+  state.kids.forEach(function(k){
+    var mine=ls.filter(function(l){return l.kidId===k.id;});
+    var week=0,sport=0,monthly=0,yearlyExtra=0,entry=0,days=[0,0,0,0,0,0,0],cultureY=0,studyY=0,count=0;
+    mine.forEach(function(l){
+      var dur=Math.max(0,toMin(l.end)-toMin(l.start));
+      week+=dur*l.days.length;
+      if(typeCat(l.type)==='sport')sport+=dur*l.days.length;
+      l.days.forEach(function(d){days[d]=1;});
+      monthly+=num(l.monthly); yearlyExtra+=num(l.annual)+num(l.gear); entry+=num(l.entry);
+      var y=num(l.monthly)*12+num(l.annual)+num(l.gear);
+      if(typeCat(l.type)==='study')studyY+=y;else{cultureY+=y;count++;}
+    });
+    var ml=monthsLeft(k.grade), yrs=Math.ceil(ml/12);
+    var yearly=monthly*12+yearlyExtra;
+    var grad=monthly*ml+yearlyExtra*yrs+entry;
+    var free=[];days.forEach(function(v,i){if(!v)free.push(i);});
+    res.kids[k.id]={week:week,sport:sport,monthly:monthly,yearly:yearly,grad:grad,ml:ml,free:free,cultureY:cultureY,studyY:studyY,count:count,n:mine.length,days:days};
+    res.total.week+=week;res.total.monthly+=monthly;res.total.yearly+=yearly;res.total.grad+=grad;res.total.count+=mine.length;
+  });
+  for(var d=0;d<7;d++){
+    var any=state.kids.some(function(k){return res.kids[k.id].days[d];});
+    if(!any)res.freeAll.push(d);
+  }
+  /* 送迎：手がふさがる時間帯 */
+  function wins(l){
+    var s=toMin(l.start),e=toMin(l.end),h=num(l.mins)/2;
+    if(l.wait)return [[s-h,e+h]];
+    return [[s-h,s+h],[e-h,e+h]];
+  }
+  ls.forEach(function(l){
+    var who=(l.who||'').trim(); if(!who)return;
+    var per=(l.wait?(num(l.mins)+Math.max(0,toMin(l.end)-toMin(l.start))):num(l.mins));
+    res.pick[who]=(res.pick[who]||0)+per*l.days.length;
+  });
+  for(var i=0;i<ls.length;i++)for(var j=i+1;j<ls.length;j++){
+    var a=ls[i],b=ls[j];
+    var wa=(a.who||'').trim(),wb=(b.who||'').trim();
+    if(!wa||wa!==wb)continue;
+    if(a.place&&b.place&&a.place.trim()===b.place.trim())continue;
+    a.days.forEach(function(d){
+      if(b.days.indexOf(d)<0)return;
+      var A=wins(a),B=wins(b),hit=null;
+      A.forEach(function(x){B.forEach(function(y){
+        if(x[0]<y[1]&&y[0]<x[1]){var s=Math.max(x[0],y[0]),e=Math.min(x[1],y[1]);if(!hit||s<hit[0])hit=[s,e];}
+      });});
+      if(hit)res.conf.push({day:d,who:wa,a:a,b:b,from:hit[0],to:hit[1],type:'pick'});
+    });
+  }
+  /* 同じ子の時間かぶり */
+  for(var i2=0;i2<ls.length;i2++)for(var j2=i2+1;j2<ls.length;j2++){
+    var p=ls[i2],q=ls[j2]; if(p.kidId!==q.kidId)continue;
+    p.days.forEach(function(d){
+      if(q.days.indexOf(d)<0)return;
+      var ps=toMin(p.start),pe=toMin(p.end),qs=toMin(q.start),qe=toMin(q.end);
+      if(ps<qe&&qs<pe)res.conf.push({day:d,a:p,b:q,from:Math.max(ps,qs),to:Math.min(pe,qe),type:'self'});
+    });
+  }
+  return res;
+}
+
+/* ---------- 描画：登録 ---------- */
+function renderInput(){
+  var html='';
+  if(!state.kids.length){
+    html='<div class="card empty">まず「＋ 子どもを追加」から始めましょう。<br>どんな画面か見たいときは「例を入れてみる」を押してください。</div>';
+  }
+  state.kids.forEach(function(k){
+    var col=kidColor(k);
+    var mine=state.lessons.filter(function(l){return l.kidId===k.id;});
+    html+='<div class="card"><div class="kidhead"><span class="dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(k.name)+'<span class="muted">（小'+k.grade+'）</span></h3><span class="spacer"></span><button class="tiny ghost noprint" data-editkid="'+k.id+'">編集</button></div>';
+    if(!mine.length)html+='<div class="empty">まだ習い事がありません</div>';
+    mine.forEach(function(l){
+      var dur=toMin(l.end)-toMin(l.start);
+      var who=(l.who||'').trim();
+      html+='<div class="lesson'+(l.stop&&!l.trial?' stopped':'')+'"><span class="bar" style="background:'+col+'"></span><div class="body">'+
+        '<div class="title">'+esc(lessonLabel(l))+(l.name?' <span class="muted small">'+esc(l.type)+'</span>':'')+
+        (l.trial?'<span class="badge sim">仮で追加</span>':'')+(l.stop&&!l.trial?'<span class="badge stop">やめたら？</span>':'')+'</div>'+
+        '<div class="meta">'+l.days.map(function(d){return DAYS[d];}).join('・')+'　'+esc(l.start)+'〜'+esc(l.end)+'（'+fmtDur(dur)+'）</div>'+
+        '<div class="meta">月謝 '+yen(num(l.monthly))+(num(l.annual)+num(l.gear)?' ／ 年会費・道具 '+yen(num(l.annual)+num(l.gear))+'/年':'')+(num(l.entry)?' ／ 入会金 '+yen(num(l.entry)):'')+'</div>'+
+        '<div class="meta">送迎：'+(who?esc(who)+'（往復'+num(l.mins)+'分'+(l.wait?'・付き添い':'')+'）':'なし')+(l.place?'　場所：'+esc(l.place):'')+'</div>'+
+        '<div class="row noprint" style="margin-top:6px"><button class="tiny" data-editls="'+l.id+'">編集</button>'+
+        (l.trial?'':'<label class="check small" style="margin:0 0 0 6px"><input type="checkbox" data-stop="'+l.id+'"'+(l.stop?' checked':'')+'>やめたら？</label>')+
+        '</div></div></div>';
+    });
+    html+='<div class="row noprint" style="margin-top:8px"><button class="tiny" data-addls="'+k.id+'">＋ 習い事を追加</button><button class="tiny ghost" data-addtrial="'+k.id+'">＋ 1つ増やしたら？（仮）</button></div></div>';
+  });
+  $('kidsArea').innerHTML=html;
+  $('addKid').style.display=state.kids.length>=5?'none':'';
+}
+
+/* ---------- 描画：時間割 ---------- */
+function renderTT(){
+  var mode=viewMode(), r=calc(mode), ls=active(mode);
+  var leg='';
+  state.kids.forEach(function(k){leg+='<span><span class="dot" style="background:'+kidColor(k)+'"></span>'+esc(k.name)+'</span>';});
+  if(mode==='sim')leg+='<span><span class="dot" style="border:2px dashed var(--sim)"></span>仮で追加</span>';
+  leg+='<span><span class="dot" style="background:var(--warn-soft);border:1px solid var(--warn)"></span>送迎が重なる時間</span>';
+  $('ttLegend').innerHTML=leg;
+  if(!ls.length){$('tt').innerHTML='<div class="empty">習い事を登録すると、ここに週の時間割が出ます。</div>';$('conflicts').innerHTML='';return;}
+  var minT=24*60,maxT=0;
+  ls.forEach(function(l){
+    var h=(l.who?num(l.mins)/2:0);
+    minT=Math.min(minT,toMin(l.start)-h);maxT=Math.max(maxT,toMin(l.end)+h);
+  });
+  var st=Math.min(15*60,Math.floor(minT/60)*60), en=Math.max(19*60,Math.ceil(maxT/60)*60);
+  var PX=0.9; /* 1分あたりpx */
+  var H=(en-st)*PX;
+  var confIds={};r.conf.forEach(function(c){confIds[c.a.id+'_'+c.day]=1;confIds[c.b.id+'_'+c.day]=1;});
+  var html='<div class="tt"><div class="corner"></div>';
+  for(var d=0;d<7;d++){
+    var free=r.freeAll.indexOf(d)>=0;
+    html+='<div class="dh'+(d===5?' sat':d===6?' sun':'')+(free?' free':'')+'">'+DAYS[d]+(free?'<br><span style="font-size:.62rem;font-weight:400">休み</span>':'')+'</div>';
+  }
+  html+='<div class="hours" style="height:'+H+'px">';
+  for(var t=st;t<=en;t+=60)html+='<div style="top:'+((t-st)*PX)+'px">'+(t/60)+'時</div>';
+  html+='</div>';
+  for(d=0;d<7;d++){
+    html+='<div class="col" style="height:'+H+'px">';
+    for(t=st;t<en;t+=30)html+='<div class="hl'+(t%60?' half':'')+'" style="top:'+((t-st)*PX)+'px"></div>';
+    var todays=ls.filter(function(l){return l.days.indexOf(d)>=0;}).sort(function(a,b){return toMin(a.start)-toMin(b.start);});
+    /* レーン割り当て */
+    var lanes=[];
+    todays.forEach(function(l){
+      var s=toMin(l.start),placed=false;
+      for(var i=0;i<lanes.length;i++){if(lanes[i]<=s){lanes[i]=toMin(l.end);l._lane=i;placed=true;break;}}
+      if(!placed){l._lane=lanes.length;lanes.push(toMin(l.end));}
+    });
+    var n=Math.max(1,lanes.length);
+    r.conf.filter(function(c){return c.day===d;}).forEach(function(c){
+      html+='<div class="ov" style="top:'+((c.from-st)*PX)+'px;height:'+Math.max(4,(c.to-c.from)*PX)+'px"></div>';
+    });
+    todays.forEach(function(l){
+      var k=kidById(l.kidId),col=kidColor(k);
+      var s=toMin(l.start),e=toMin(l.end),w=100/n;
+      if(l.who&&num(l.mins)){
+        var h=num(l.mins)/2;
+        html+='<div class="pick" style="background:'+col+';top:'+((s-h-st)*PX)+'px;height:'+(h*PX)+'px;left:'+(l._lane*w)+'%"></div>';
+        html+='<div class="pick" style="background:'+col+';top:'+((e-st)*PX)+'px;height:'+(h*PX)+'px;left:'+(l._lane*w)+'%"></div>';
+      }
+      html+='<div class="blk'+(l.trial?' trial':'')+(confIds[l.id+'_'+d]?' conf':'')+'" data-editls="'+l.id+'" title="'+esc(k.name+' '+lessonLabel(l)+' '+l.start+'〜'+l.end)+'" style="background:'+col+';top:'+((s-st)*PX)+'px;height:'+Math.max(14,(e-s)*PX-1)+'px;left:calc('+(l._lane*w)+'% + 2px);width:calc('+w+'% - 4px)">'+
+        '<b>'+esc(k.name.slice(0,2))+'</b>'+esc(l.type.slice(0,4))+'</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div><p class="muted small" style="margin:6px 0 0">ブロックをタップすると編集できます。左の細い線は送迎で手がふさがる時間（往復の半分ずつを前後に）。</p>';
+  $('tt').innerHTML=html;
+  var ch='';
+  if(r.conf.length){
+    ch='<div class="alert"><b>気をつけたいところ（'+r.conf.length+'件）</b><ul style="margin:6px 0 0;padding-left:1.2em">';
+    r.conf.forEach(function(c){
+      var ka=kidById(c.a.kidId),kb=kidById(c.b.kidId);
+      if(c.type==='pick')ch+='<li>'+DAYS[c.day]+'曜 '+fmtT(c.from)+'ごろ：<b>'+esc(c.who)+'</b>さんが「'+esc(ka.name)+'の'+esc(lessonLabel(c.a))+'」と「'+esc(kb.name)+'の'+esc(lessonLabel(c.b))+'」の送迎で2か所に同時に必要です</li>';
+      else ch+='<li>'+DAYS[c.day]+'曜 '+fmtT(c.from)+'〜'+fmtT(c.to)+'：'+esc(ka.name)+'の「'+esc(lessonLabel(c.a))+'」と「'+esc(lessonLabel(c.b))+'」の時間がかぶっています</li>';
+    });
+    ch+='</ul><div class="small" style="margin-top:6px">送迎する人を分ける・時間をずらす・同じ場所なら「場所」を同じにすると解消できます。</div></div>';
+  }else{
+    ch='<div class="okbox">送迎の重なりはありません。</div>';
+  }
+  $('conflicts').innerHTML=ch;
+}
+
+/* ---------- 描画：集計 ---------- */
+function statBox(k,v,extra,wide,d){return '<div class="stat'+(wide?' wide':'')+'"><div class="k">'+k+'</div><div class="v">'+v+(extra?' <small>'+extra+'</small>':'')+'</div>'+(d||'')+'</div>';}
+function renderSum(){
+  var mode=viewMode(),r=calc(mode);
+  if(!state.kids.length){$('sumArea').innerHTML='<div class="card empty">子どもを登録すると集計が出ます。</div>';$('diffArea').innerHTML='';return;}
+  var html='';
+  state.kids.forEach(function(k){
+    var x=r.kids[k.id],ml=x.ml;
+    var age=k.grade+6;
+    html+='<div class="card"><div class="kidhead"><span class="dot" style="background:'+kidColor(k)+'"></span><h3 style="margin:0">'+esc(k.name)+'<span class="muted">（小'+k.grade+'・習い事'+x.n+'つ）</span></h3></div><div class="stats">'+
+      statBox('週の合計時間',fmtDur(x.week),x.sport?'うちスポーツ '+fmtDur(x.sport):'')+
+      statBox('習い事が無い日',x.free.length+'日',x.free.map(function(d){return DAYS[d];}).join('・'))+
+      statBox('月額（月謝）',yen(x.monthly))+
+      statBox('年額',yen(x.yearly),'年会費・道具込み')+
+      statBox('小学校卒業までの総額',man(x.grad),'あと'+(Math.floor(ml/12)?Math.floor(ml/12)+'年':'')+(ml%12?ml%12+'か月':'')+'・入会金込み',true)+
+      '</div>';
+    if(x.sport){
+      html+='<div class="note">目安の一つ：スポーツの週の活動時間が「年齢×1時間」（'+esc(k.name)+'さんなら週'+age+'〜'+(age+1)+'時間）を超えると、けがが増えるという研究の紹介があります。いまのスポーツ系は週'+fmtDur(x.sport)+'です。体調や本人の様子を一番に見てください。</div>';
+    }
+    html+='</div>';
+  });
+  if(state.kids.length>1||Object.keys(r.pick).length){
+    var p='';Object.keys(r.pick).forEach(function(w){p+=esc(w)+' 週'+fmtDur(r.pick[w])+'　';});
+    html+='<div class="card family"><h3>'+(state.kids.length>1?'きょうだい合計':'家族の合計')+'</h3><div class="stats">'+
+      statBox('週の合計時間',fmtDur(r.total.week))+
+      statBox('みんな習い事が無い日',r.freeAll.length+'日',r.freeAll.map(function(d){return DAYS[d];}).join('・'))+
+      statBox('月額',yen(r.total.monthly))+
+      statBox('年額',yen(r.total.yearly))+
+      statBox('全員の小学校卒業までの総額',man(r.total.grad),'',true)+
+      statBox('送迎にかかる時間',p||'なし','',true)+
+      statBox('送迎・時間の重なり',r.conf.length+'件','',true)+
+      '</div></div>';
+  }
+  $('sumArea').innerHTML=html;
+  /* シミュレーション差分 */
+  if(hasSim()){
+    var a=calc('now'),b=calc('sim');
+    function row(lbl,va,vb,f,lowerBetter){
+      var dd=vb-va,cls=dd===0?'':((dd>0)===lowerBetter?'up':'down');
+      return '<tr><td>'+lbl+'</td><td>'+f(va)+'</td><td>'+f(vb)+'</td><td class="'+cls+'">'+(dd===0?'±0':(dd>0?'＋':'−')+f(Math.abs(dd)))+'</td></tr>';
+    }
+    var adds=state.lessons.filter(function(l){return l.trial&&kidById(l.kidId);}).map(function(l){return kidById(l.kidId).name+'の'+lessonLabel(l);});
+    var stops=state.lessons.filter(function(l){return !l.trial&&l.stop&&kidById(l.kidId);}).map(function(l){return kidById(l.kidId).name+'の'+lessonLabel(l);});
+    var dh='<div class="card diff"><h3 style="color:var(--sim)">「1つ増やしたら／やめたら」シミュレーション</h3><p class="small muted" style="margin:0 0 6px">'+
+      (adds.length?'増やす：'+esc(adds.join('、'))+'　':'')+(stops.length?'やめる：'+esc(stops.join('、')):'')+'</p>'+
+      '<table><tr><th></th><th>いま</th><th>変更後</th><th>差</th></tr>'+
+      row('週の合計時間',a.total.week,b.total.week,fmtDur,true)+
+      row('みんな休みの日',a.freeAll.length,b.freeAll.length,function(v){return v+'日';},false)+
+      row('月額',a.total.monthly,b.total.monthly,yen,true)+
+      row('年額',a.total.yearly,b.total.yearly,yen,true)+
+      row('卒業までの総額',a.total.grad,b.total.grad,man,true)+
+      row('重なり',a.conf.length,b.conf.length,function(v){return v+'件';},true)+
+      '</table><p class="small muted" style="margin:6px 0 0">'+(state.simView?'時間割・集計は「変更後」を表示中です。':'上の「反映して見る」をオンにすると、時間割も変更後で見られます。')+'</p></div>';
+    $('diffArea').innerHTML=dh;
+  }else $('diffArea').innerHTML='';
+}
+
+/* ---------- 描画：調査とくらべる ---------- */
+function bar(lbl,val,max,col){
+  var w=max>0?Math.min(100,val/max*100):0;
+  return '<div class="cmp"><div class="lbl"><span>'+lbl+'</span><b>'+yen(val)+'/月</b></div><div class="track"><div class="fill" style="width:'+w+'%;background:'+col+'"></div></div></div>';
+}
+function renderCmp(){
+  var mode=viewMode(),r=calc(mode);
+  if(!state.kids.length){$('cmpArea').innerHTML='<div class="card empty">子どもを登録するとくらべられます。</div>';return;}
+  var html='';
+  state.kids.forEach(function(k){
+    var x=r.kids[k.id],g=k.grade-1,col=kidColor(k);
+    var sm=MEXT_SONOTA[g]/12,hm=MEXT_HOJO[g]/12,um=x.cultureY/12,us=x.studyY/12;
+    var max=Math.max(sm,um,hm,us);
+    html+='<div class="card"><div class="kidhead"><span class="dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(k.name)+'<span class="muted">（小'+k.grade+'）</span></h3></div>'+
+      '<p class="small muted" style="margin:6px 0 0">費用（年会費・道具代も月にならした額）</p>'+
+      bar('うちの習い事（塾以外）',um,max,col)+
+      bar('公立小'+k.grade+'年の平均（習い事・体験活動など）',sm,max,'#c9bfb0')+
+      bar('うちの塾・通信教育',us,max,col)+
+      bar('公立小'+k.grade+'年の平均（塾・通信教育など）',hm,max,'#c9bfb0')+
+      '<p class="small" style="margin:8px 0 0">習い事の数（塾・通信をのぞく）：<b>'+x.count+'つ</b>。'+
+      (x.count===0?'小学生の約8割は何かしら習い事をしていますが、しない選択も十分ありです。':
+       x.count===1?'習い事をしている家庭では「1つ」が約5割で、いちばん多い形です。':
+       x.count===2?'習い事をしている家庭では「2つ」が約3割です。':
+       '「1つ」約5割・「2つ」約3割なので、3つ以上はやや多めのグループです。休む日・送迎の負担も合わせて見てみてください。')+'</p>'+
+      '<p class="small" style="margin:6px 0 0">習い事が無い日：<b>'+x.free.length+'日</b>。'+(x.free.length<2?'スポーツについては「週1〜2日は休む」ことを勧める報告もあります（目安の一つ）。':'休みの日が確保できています。')+'</p>'+
+      '</div>';
+  });
+  $('cmpArea').innerHTML=html;
+}
+
+function renderAll(){renderInput();renderTT();renderSum();renderCmp();$('simView').checked=!!state.simView;}
+
+/* ---------- 子ども編集 ---------- */
+var editingKid=null;
+function openKid(id){
+  editingKid=id||null;var k=id?kidById(id):null;
+  $('kidSheetTitle').textContent=k?'子どもを編集':'子どもを追加';
+  $('kName').value=k?k.name:'';$('kGrade').value=k?k.grade:1;$('kErr').textContent='';
+  $('kDel').style.display=k?'':'none';
+  $('kidSheet').classList.add('open');setTimeout(function(){$('kName').focus();},50);
+}
+function closeSheets(){$('kidSheet').classList.remove('open');$('lsSheet').classList.remove('open');}
+$('addKid').onclick=function(){openKid(null);};
+$('kCancel').onclick=closeSheets;
+$('kSave').onclick=function(){
+  var name=$('kName').value.trim();if(!name){$('kErr').textContent='名前を入れてください';return;}
+  var g=+$('kGrade').value;
+  if(editingKid){var k=kidById(editingKid);k.name=name;k.grade=g;}
+  else state.kids.push({id:uid(),name:name,grade:g});
+  save();closeSheets();renderAll();
+};
+$('kDel').onclick=function(){
+  if(!confirm('この子と、この子の習い事をすべて削除します。よろしいですか？'))return;
+  state.kids=state.kids.filter(function(k){return k.id!==editingKid;});
+  state.lessons=state.lessons.filter(function(l){return l.kidId!==editingKid;});
+  save();closeSheets();renderAll();
+};
+
+/* ---------- 習い事編集 ---------- */
+var editingLs=null,selDays=[];
+(function(){
+  var o='';TYPES.forEach(function(t){o+='<option>'+esc(t.v)+'</option>';});$('lType').innerHTML=o;
+  var d='';DAYS.forEach(function(x,i){d+='<label data-day="'+i+'">'+x+'</label>';});$('lDays').innerHTML=d;
+  $('lDays').onclick=function(e){
+    var lb=e.target.closest('[data-day]');if(!lb)return;var i=+lb.getAttribute('data-day');
+    var p=selDays.indexOf(i);if(p>=0)selDays.splice(p,1);else selDays.push(i);paintDays();
+  };
+})();
+function paintDays(){[].forEach.call($('lDays').querySelectorAll('[data-day]'),function(lb){lb.classList.toggle('on',selDays.indexOf(+lb.getAttribute('data-day'))>=0);});}
+function openLs(id,kidId,trial){
+  editingLs=id||null;var l=null;
+  for(var i=0;i<state.lessons.length;i++)if(state.lessons[i].id===id)l=state.lessons[i];
+  var ko='';state.kids.forEach(function(k){ko+='<option value="'+k.id+'">'+esc(k.name)+'（小'+k.grade+'）</option>';});$('lKid').innerHTML=ko;
+  $('lsSheetTitle').textContent=l?'習い事を編集':(trial?'1つ増やしたら？（仮で追加）':'習い事を追加');
+  $('lKid').value=l?l.kidId:kidId;
+  $('lType').value=l?l.type:TYPES[0].v;$('lName').value=l?(l.name||''):'';
+  selDays=l?l.days.slice():[];paintDays();
+  $('lStart').value=l?l.start:'16:00';$('lEnd').value=l?l.end:'17:00';
+  $('lMonthly').value=l&&l.monthly?l.monthly:'';$('lAnnual').value=l&&l.annual?l.annual:'';
+  $('lGear').value=l&&l.gear?l.gear:'';$('lEntry').value=l&&l.entry?l.entry:'';
+  $('lWho').value=l?(l.who||''):'';$('lMins').value=l&&l.mins?l.mins:'';
+  $('lWait').checked=!!(l&&l.wait);$('lPlace').value=l?(l.place||''):'';
+  $('lTrial').checked=l?!!l.trial:!!trial;
+  $('lDel').style.display=l?'':'none';$('lErr').textContent='';
+  $('lsSheet').classList.add('open');
+}
+$('lCancel').onclick=closeSheets;
+$('lSave').onclick=function(){
+  var s=$('lStart').value,e=$('lEnd').value;
+  if(!selDays.length){$('lErr').textContent='曜日を1つ以上えらんでください';return;}
+  if(!s||!e||toMin(e)<=toMin(s)){$('lErr').textContent='終了は開始より後の時刻にしてください';return;}
+  var o={kidId:$('lKid').value,type:$('lType').value,name:$('lName').value.trim(),days:selDays.slice().sort(),start:s,end:e,
+    monthly:num($('lMonthly').value),annual:num($('lAnnual').value),gear:num($('lGear').value),entry:num($('lEntry').value),
+    who:$('lWho').value.trim(),mins:num($('lMins').value),wait:$('lWait').checked,place:$('lPlace').value.trim(),trial:$('lTrial').checked};
+  if(editingLs){
+    for(var i=0;i<state.lessons.length;i++)if(state.lessons[i].id===editingLs){o.id=editingLs;o.stop=o.trial?false:!!state.lessons[i].stop;state.lessons[i]=o;}
+  }else{o.id=uid();o.stop=false;state.lessons.push(o);}
+  save();closeSheets();renderAll();
+};
+$('lDel').onclick=function(){
+  if(!confirm('この習い事を削除します。よろしいですか？'))return;
+  state.lessons=state.lessons.filter(function(l){return l.id!==editingLs;});save();closeSheets();renderAll();
+};
+[$('kidSheet'),$('lsSheet')].forEach(function(bg){bg.addEventListener('click',function(e){if(e.target===bg)closeSheets();});});
+
+/* ---------- イベント委任 ---------- */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-editkid],[data-editls],[data-addls],[data-addtrial]');if(!t)return;
+  if(t.hasAttribute('data-editkid'))openKid(t.getAttribute('data-editkid'));
+  else if(t.hasAttribute('data-editls'))openLs(t.getAttribute('data-editls'));
+  else if(t.hasAttribute('data-addls'))openLs(null,t.getAttribute('data-addls'),false);
+  else if(t.hasAttribute('data-addtrial'))openLs(null,t.getAttribute('data-addtrial'),true);
+});
+document.addEventListener('change',function(e){
+  var id=e.target.getAttribute&&e.target.getAttribute('data-stop');if(!id)return;
+  state.lessons.forEach(function(l){if(l.id===id)l.stop=e.target.checked;});save();renderAll();
+});
+$('simView').onchange=function(){state.simView=this.checked;save();renderAll();};
+$('reset').onclick=function(){if(!confirm('登録したデータをすべて消します。よろしいですか？'))return;state={kids:[],lessons:[],simView:false};save();renderAll();};
+$('sample').onclick=function(){
+  if(state.kids.length&&!confirm('いまのデータを消して、例に置きかえます。よろしいですか？'))return;
+  var a=uid(),b=uid();
+  state={simView:false,kids:[{id:a,name:'はると',grade:4},{id:b,name:'ゆい',grade:1}],lessons:[
+    {id:uid(),kidId:a,type:'水泳',name:'駅前スイミング',days:[0,3],start:'17:00',end:'18:00',monthly:7700,annual:2200,gear:4000,entry:0,who:'ママ',mins:20,wait:false,place:'駅前',trial:false,stop:false},
+    {id:uid(),kidId:a,type:'サッカー',name:'少年団',days:[5],start:'09:00',end:'12:00',monthly:3000,annual:6000,gear:8000,entry:0,who:'パパ',mins:15,wait:false,place:'小学校',trial:false,stop:false},
+    {id:uid(),kidId:a,type:'学習塾',name:'',days:[2],start:'17:30',end:'19:00',monthly:12000,annual:0,gear:6000,entry:0,who:'',mins:0,wait:false,place:'',trial:false,stop:false},
+    {id:uid(),kidId:b,type:'ピアノ・楽器',name:'ピアノ',days:[0],start:'16:30',end:'17:00',monthly:7000,annual:0,gear:3000,entry:0,who:'ママ',mins:20,wait:false,place:'先生の家',trial:false,stop:false},
+    {id:uid(),kidId:b,type:'英語',name:'',days:[3],start:'16:00',end:'17:00',monthly:8000,annual:5000,gear:3000,entry:11000,who:'ママ',mins:10,wait:false,place:'',trial:true,stop:false}
+  ]};
+  save();renderAll();
+};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSheets();});
+
+load();renderAll();
+})();
+</script>
+</body>
+</html>

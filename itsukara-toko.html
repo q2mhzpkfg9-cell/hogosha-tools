@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>インフルエンザ・コロナ いつから登校？出席停止期間の計算機｜発症日・解熱日を入れるだけ</title>
+<meta name="description" content="インフルエンザ・新型コロナなどの出席停止期間（学校保健安全法施行規則 第19条）を、発症日・解熱日から自動で数えます。">
+<style>
+:root{
+  --bg:#fbf7f0; --card:#ffffff; --ink:#3d3a35; --sub:#7a746a; --line:#e8e1d5;
+  --accent:#e08a5b; --accent-ink:#ffffff; --accent-soft:#fdeee4;
+  --stop:#fbe3e3; --stop-ink:#a8433f; --ok:#e2f3e6; --ok-ink:#2f7a45;
+  --off:#eeebe5; --off-ink:#8a8378; --today:#5b8fd6; --warn:#fff6dc; --warn-ink:#8a6a12;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1f1d1a; --card:#2a2723; --ink:#eee8de; --sub:#b3ab9e; --line:#3d3934;
+    --accent:#e89a6e; --accent-ink:#1f1d1a; --accent-soft:#3a2c23;
+    --stop:#4a2c2b; --stop-ink:#f3b4b0; --ok:#26402d; --ok-ink:#a5dcb3;
+    --off:#34312c; --off-ink:#a29a8d; --today:#86b0ea; --warn:#3d3420; --warn-ink:#f0d68a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1f1d1a; --card:#2a2723; --ink:#eee8de; --sub:#b3ab9e; --line:#3d3934;
+  --accent:#e89a6e; --accent-ink:#1f1d1a; --accent-soft:#3a2c23;
+  --stop:#4a2c2b; --stop-ink:#f3b4b0; --ok:#26402d; --ok-ink:#a5dcb3;
+  --off:#34312c; --off-ink:#a29a8d; --today:#86b0ea; --warn:#3d3420; --warn-ink:#f0d68a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  line-height:1.7;font-size:16px;-webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+header{padding:12px 0 4px}
+h1{font-size:1.45rem;margin:0 0 4px;letter-spacing:.02em}
+.lead{color:var(--sub);font-size:.92rem;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0}
+h2{font-size:1.05rem;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+h2 .num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  background:var(--accent);color:var(--accent-ink);font-size:.85rem}
+label{display:block;font-weight:600;margin:10px 0 4px}
+.hint{color:var(--sub);font-size:.82rem;font-weight:400;display:block;line-height:1.5}
+select,input[type=date],input[type=text]{width:100%;font:inherit;font-size:16px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:120px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg);color:var(--ink);padding:10px 12px}
+button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+button.main{width:100%;background:var(--accent);color:var(--accent-ink);border:none;font-weight:700;padding:13px;margin-top:8px}
+.check{display:flex;gap:8px;align-items:flex-start;font-weight:400;margin-top:10px}
+.check input{width:20px;height:20px;margin-top:3px;flex:none}
+.rule{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.9rem;margin-top:10px}
+.rule b{color:var(--accent)}
+.big{text-align:center;padding:6px 0}
+.big .lbl{color:var(--sub);font-size:.9rem}
+.big .date{font-size:2rem;font-weight:800;color:var(--ok-ink);line-height:1.3}
+.big .sub{font-size:.95rem;margin-top:4px}
+.note{background:var(--warn);color:var(--warn-ink);border-radius:10px;padding:10px 12px;font-size:.88rem;margin:10px 0}
+.err{background:var(--stop);color:var(--stop-ink);border-radius:10px;padding:10px 12px;font-size:.9rem}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--sub);margin:8px 0}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px;background:var(--c)}
+.days{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.days li{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;
+  border-radius:10px;padding:8px 10px;font-size:.92rem}
+.days li.stop{background:var(--stop);color:var(--stop-ink)}
+.days li.ok{background:var(--ok);color:var(--ok-ink)}
+.days li.offok{background:var(--off);color:var(--off-ink)}
+.days li.first{outline:2px solid var(--ok-ink);font-weight:700}
+.days .d{font-weight:700}
+.days .c{font-size:.82rem;line-height:1.45}
+.days .s{font-size:.8rem;font-weight:700;white-space:nowrap}
+.memo{width:100%;min-height:190px;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;background:var(--bg);color:var(--ink);resize:vertical}
+.copied{color:var(--ok-ink);font-size:.88rem;text-align:center;min-height:1.4em}
+details{margin-top:8px}
+summary{cursor:pointer;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:.85rem;margin-top:8px}
+th,td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}
+th{white-space:nowrap}
+footer{color:var(--sub);font-size:.8rem;margin-top:20px}
+a{color:var(--accent)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>いつから登校できる？計算機</h1>
+  <p class="lead">インフルエンザなどの「出席停止」の日数を、学校保健安全法施行規則 第19条の基準で数えます。</p>
+</header>
+
+<section class="card">
+  <h2><span class="num">1</span>だれが・なんの病気？</h2>
+  <div class="seg" id="ageSeg" role="group" aria-label="年齢区分">
+    <button type="button" data-age="school" class="on">小学生以上</button>
+    <button type="button" data-age="kid">幼児（保育園・幼稚園）</button>
+  </div>
+  <label for="disease">病名（医師に診断されたもの）</label>
+  <select id="disease">
+    <option value="flu">インフルエンザ</option>
+    <option value="covid">新型コロナウイルス感染症</option>
+    <option value="measles">麻しん（はしか）</option>
+    <option value="mumps">流行性耳下腺炎（おたふくかぜ）</option>
+    <option value="rubella">風しん</option>
+    <option value="varicella">水痘（水ぼうそう）</option>
+    <option value="pcf">咽頭結膜熱（プール熱）</option>
+    <option value="other">その他（溶連菌・手足口病・胃腸炎など）</option>
+  </select>
+  <div class="rule" id="ruleBox"></div>
+</section>
+
+<section class="card" id="inputCard">
+  <h2><span class="num">2</span>日付を入れる</h2>
+  <div id="covidAsym" class="hidden">
+    <label class="check"><input type="checkbox" id="asym"> 症状が出ていない（無症状で陽性）</label>
+  </div>
+  <div id="f1">
+    <label for="d1"><span id="l1">発症日</span><span class="hint" id="h1"></span></label>
+    <input type="date" id="d1">
+  </div>
+  <div id="f2">
+    <label for="d2"><span id="l2">解熱日</span><span class="hint" id="h2"></span></label>
+    <input type="date" id="d2">
+  </div>
+  <label class="check"><input type="checkbox" id="sat"> 土曜日も登校・登園する（保育園など）</label>
+  <button type="button" class="main" id="calcBtn">計算する</button>
+</section>
+
+<section class="card hidden" id="otherCard">
+  <h2>この病気は「医師の判断」です</h2>
+  <p>溶連菌感染症・手足口病・伝染性紅斑（りんご病）・ヘルパンギーナ・マイコプラズマ感染症・感染性胃腸炎（ノロウイルス等）などは、学校保健安全法施行規則の<b>「第三種 その他の感染症」</b>にあたり、決まった日数はありません。</p>
+  <p>病状により、<b>学校医その他の医師が感染のおそれがないと認めるまで</b>出席停止になることがあります。受診したときに「いつから登校してよいか」を医師に確認し、学校に伝えてください。</p>
+  <p class="hint">目安の例：溶連菌は抗菌薬の服用開始後24時間以上たち全身状態がよければ登校可能とされることが多い、など（必ず医師に確認）。</p>
+</section>
+
+<section class="card hidden" id="resultCard">
+  <h2><span class="num">3</span>結果</h2>
+  <div id="resultBody"></div>
+</section>
+
+<section class="card hidden" id="memoCard">
+  <h2><span class="num">4</span>学校への連絡メモ</h2>
+  <label for="childName">名前（任意・保存されません）</label>
+  <input type="text" id="childName" placeholder="例：2年1組 やまだ はなこ" autocomplete="off">
+  <label for="memo">メモ（書きかえできます）</label>
+  <textarea class="memo" id="memo"></textarea>
+  <button type="button" class="main" id="copyBtn">メモをコピーする</button>
+  <div class="copied" id="copied" aria-live="polite"></div>
+</section>
+
+<section class="card">
+  <h2>数え方のきまり</h2>
+  <ul style="padding-left:1.2em;margin:0;font-size:.92rem">
+    <li><b>発症した日（解熱した日）は「0日目」</b>。次の日が1日目です。</li>
+    <li>「5日を<b>経過</b>するまで」＝5日目が終わるまで休み。<b>6日目から登校OK</b>。</li>
+    <li>インフルエンザは「発症後5日」と「解熱後2日（幼児は3日）」の<b>両方</b>を満たす必要があります。遅いほうに合わせます。</li>
+    <li>「発症日」は熱などの症状が出た日（夜でもその日）。「解熱日」は解熱剤を使わずに平熱にもどった日。また熱が上がったら、下がった日から数えなおします。</li>
+    <li>出席停止の期間は「欠席」になりません（学校の記録では出席停止扱い）。</li>
+  </ul>
+  <details>
+    <summary>病気ごとの基準（第19条第2号）</summary>
+    <table>
+      <tr><th>病名</th><td>出席停止の期間の基準</td></tr>
+      <tr><th>インフルエンザ</th><td>発症した後5日を経過し、かつ、解熱した後2日（幼児は3日）を経過するまで</td></tr>
+      <tr><th>新型コロナ</th><td>発症した後5日を経過し、かつ、症状が軽快した後1日を経過するまで</td></tr>
+      <tr><th>麻しん</th><td>解熱した後3日を経過するまで</td></tr>
+      <tr><th>流行性耳下腺炎</th><td>耳下腺・顎下腺・舌下腺の腫脹が発現した後5日を経過し、かつ、全身状態が良好になるまで</td></tr>
+      <tr><th>風しん</th><td>発しんが消失するまで</td></tr>
+      <tr><th>水痘</th><td>すべての発しんが痂皮化（かさぶた）するまで</td></tr>
+      <tr><th>咽頭結膜熱</th><td>主要症状が消退した後2日を経過するまで</td></tr>
+    </table>
+    <p class="hint">いずれも「病状により学校医その他の医師において感染のおそれがないと認めたときは、この限りでない」とされています。</p>
+  </details>
+</section>
+
+<div class="note"><b>最終判断は医師・学校の指示に従ってください。</b>このページは法令の基準で日数を数える目安です。学校・園によっては「登校許可証」「治癒報告書」などの提出が必要です。開校記念日や長期休みなど学校独自の休みは反映していません。</div>
+
+<footer>
+  出典：<a href="https://laws.e-gov.go.jp/law/333M50000080018" target="_blank" rel="noopener">学校保健安全法施行規則（e-Gov法令検索）第18条・第19条</a> ／
+  <a href="https://www.gakkohoken.jp/" target="_blank" rel="noopener">日本学校保健会『学校において予防すべき感染症の解説』</a><br>
+  祝日は内閣府「国民の祝日」の規則（振替休日・国民の休日を含む）で自動計算しています。
+</footer>
+</div>
+
+<script>
+/* ===== 日付ユーティリティ（ローカル正午で扱い、ずれを防ぐ） ===== */
+function parseDate(s){ if(!s) return null; var p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2],12); }
+function addDays(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+function diffDays(a,b){ return Math.round((b-a)/86400000); }
+function ymd(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+var WD=['日','月','火','水','木','金','土'];
+function jp(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日('+WD[d.getDay()]+')'; }
+function maxDate(a,b){ return a>b?a:b; }
+
+/* ===== 日本の祝日（年ごとに計算） ===== */
+var holidayCache={};
+function nthMonday(y,m,n){ var d=new Date(y,m-1,1,12); var off=(8-d.getDay())%7; return 1+off+(n-1)*7; }
+function holidaysOf(y){
+  if(holidayCache[y]) return holidayCache[y];
+  var h={};
+  function add(m,d,name){ h[ymd(new Date(y,m-1,d,12))]=name; }
+  add(1,1,'元日'); add(1,nthMonday(y,1,2),'成人の日'); add(2,11,'建国記念の日'); add(2,23,'天皇誕生日');
+  var spring=Math.floor(20.8431+0.242194*(y-1980)-Math.floor((y-1980)/4));
+  var autumn=Math.floor(23.2488+0.242194*(y-1980)-Math.floor((y-1980)/4));
+  add(3,spring,'春分の日'); add(4,29,'昭和の日'); add(5,3,'憲法記念日'); add(5,4,'みどりの日'); add(5,5,'こどもの日');
+  add(7,nthMonday(y,7,3),'海の日'); add(8,11,'山の日'); add(9,nthMonday(y,9,3),'敬老の日'); add(9,autumn,'秋分の日');
+  add(10,nthMonday(y,10,2),'スポーツの日'); add(11,3,'文化の日'); add(11,23,'勤労感謝の日');
+  // 国民の休日（祝日にはさまれた平日）
+  Object.keys(h).forEach(function(k){
+    var d=parseDate(k), d2=addDays(d,2), mid=addDays(d,1);
+    if(h[ymd(d2)] && !h[ymd(mid)] && mid.getDay()!==0) h[ymd(mid)]='国民の休日';
+  });
+  // 振替休日（日曜の祝日→次の祝日でない日）
+  Object.keys(h).sort().forEach(function(k){
+    var d=parseDate(k);
+    if(d.getDay()===0){ var n=addDays(d,1); while(h[ymd(n)]) n=addDays(n,1); h[ymd(n)]='振替休日'; }
+  });
+  holidayCache[y]=h; return h;
+}
+function holidayName(d){ return holidaysOf(d.getFullYear())[ymd(d)]||''; }
+function isClosed(d,satOpen){
+  if(d.getDay()===0) return '日曜';
+  if(d.getDay()===6 && !satOpen) return '土曜';
+  var n=holidayName(d); return n||'';
+}
+function nextOpen(d,satOpen){ var x=d; var g=0; while(isClosed(x,satOpen) && g<20){ x=addDays(x,1); g++; } return x; }
+
+/* ===== 病気ごとのルール（学校保健安全法施行規則 第19条第2号） =====
+   「X日を経過するまで」＝ 基準日を0日目として X日目の終わりまで出席停止 → 基準日+X+1日 から登校可 */
+var RULES={
+  flu:{name:'インフルエンザ', law:'発症した後5日を経過し、かつ、解熱した後2日（幼児は3日）を経過するまで',
+    f1:['発症日','熱などの症状が出た日（夜に出てもその日）'], f2:['解熱日','解熱剤なしで平熱にもどった日。まだなら空欄でOK'],
+    calc:function(a,b,kid){ var k=kid?3:2; var r={a:addDays(a,6)}; if(b){ r.b=addDays(b,k+1); r.day=maxDate(r.a,r.b);} return r; },
+    k1:5, k2:function(kid){return kid?3:2;}, n1:'発症', n2:'解熱'},
+  covid:{name:'新型コロナウイルス感染症', law:'発症した後5日を経過し、かつ、症状が軽快した後1日を経過するまで',
+    f1:['発症日','症状が出た日'], f2:['症状が軽快した日','解熱剤なしで熱が下がり、せきなどがよくなってきた日。まだなら空欄でOK'],
+    calc:function(a,b){ var r={a:addDays(a,6)}; if(b){ r.b=addDays(b,2); r.day=maxDate(r.a,r.b);} return r; },
+    k1:5, k2:function(){return 1;}, n1:'発症', n2:'軽快'},
+  covidAsym:{name:'新型コロナウイルス感染症（無症状）', law:'無症状の場合は検体を採取した日を0日目として5日を経過するまで（症状が出たら発症日から数えなおし）',
+    f1:['検体採取日','検査（PCR・抗原）を受けた日'], f2:null,
+    calc:function(a){ return {a:addDays(a,6), day:addDays(a,6)}; }, k1:5, n1:'検体採取'},
+  measles:{name:'麻しん（はしか）', law:'解熱した後3日を経過するまで',
+    f1:['解熱日','解熱剤なしで平熱にもどった日'], f2:null,
+    calc:function(a){ return {a:addDays(a,4), day:addDays(a,4)}; }, k1:3, n1:'解熱'},
+  mumps:{name:'流行性耳下腺炎（おたふくかぜ）', law:'耳下腺・顎下腺・舌下腺の腫脹が発現した後5日を経過し、かつ、全身状態が良好になるまで',
+    f1:['はれが出た日','耳の下・あごの下がはれはじめた日'], f2:null,
+    calc:function(a){ return {a:addDays(a,6), day:addDays(a,6)}; }, k1:5, n1:'はれ',
+    extra:'あわせて「全身状態が良好になっていること」も条件です。熱や痛みが続くときは医師に相談してください。'},
+  rubella:{name:'風しん', law:'発しんが消失するまで',
+    f1:['発しんが消えた日','医師に消えたことを確認してもらった日'], f2:null,
+    calc:function(a){ return {a:addDays(a,1), day:addDays(a,1), soft:true}; }, k1:0, n1:'消失確認'},
+  varicella:{name:'水痘（水ぼうそう）', law:'すべての発しんが痂皮化（かさぶたに）するまで',
+    f1:['すべてかさぶたになった日','医師に確認してもらった日'], f2:null,
+    calc:function(a){ return {a:addDays(a,1), day:addDays(a,1), soft:true}; }, k1:0, n1:'かさぶた確認'},
+  pcf:{name:'咽頭結膜熱（プール熱）', law:'発熱・のどの痛み・目の充血などの主要症状が消退した後2日を経過するまで',
+    f1:['主な症状がおさまった日','熱・のどの痛み・目の充血がおさまった日'], f2:null,
+    calc:function(a){ return {a:addDays(a,3), day:addDays(a,3)}; }, k1:2, n1:'症状消退'}
+};
+
+/* ===== 画面 ===== */
+var $=function(id){return document.getElementById(id);};
+var state={age:'school'};
+function store(){ try{ localStorage.setItem('itsukara-touko',JSON.stringify({age:state.age,disease:$('disease').value,asym:$('asym').checked,sat:$('sat').checked,d1:$('d1').value,d2:$('d2').value})); }catch(e){} }
+function restore(){
+  try{ var s=JSON.parse(localStorage.getItem('itsukara-touko')||'null'); if(!s) return;
+    state.age=s.age||'school'; $('disease').value=s.disease||'flu'; $('asym').checked=!!s.asym; $('sat').checked=!!s.sat;
+    $('d1').value=s.d1||''; $('d2').value=s.d2||'';
+  }catch(e){}
+}
+function ruleKey(){ var v=$('disease').value; if(v==='covid' && $('asym').checked) return 'covidAsym'; return v; }
+function kid(){ return state.age==='kid'; }
+
+function refreshForm(){
+  document.querySelectorAll('#ageSeg button').forEach(function(b){ b.classList.toggle('on',b.dataset.age===state.age); });
+  var v=$('disease').value, other=v==='other';
+  $('inputCard').classList.toggle('hidden',other);
+  $('otherCard').classList.toggle('hidden',!other);
+  $('covidAsym').classList.toggle('hidden',v!=='covid');
+  if(other){ $('ruleBox').innerHTML='<b>第三種の感染症</b>：決まった日数はなく、医師が「感染のおそれがない」と認めるまで。'; $('resultCard').classList.add('hidden'); $('memoCard').classList.add('hidden'); return; }
+  var r=RULES[ruleKey()];
+  var law=r.law; if(ruleKey()==='flu') law = kid()? '発症した後5日を経過し、かつ、解熱した後<b>3日</b>を経過するまで（幼児）' : '発症した後5日を経過し、かつ、解熱した後<b>2日</b>を経過するまで';
+  $('ruleBox').innerHTML='<b>基準</b>：'+law;
+  $('l1').textContent=r.f1[0]; $('h1').textContent=r.f1[1];
+  $('f2').classList.toggle('hidden',!r.f2);
+  if(r.f2){ $('l2').textContent=r.f2[0]; $('h2').textContent=r.f2[1]; }
+}
+
+function calc(){
+  store();
+  var key=ruleKey(), r=RULES[key], a=parseDate($('d1').value), b=r.f2?parseDate($('d2').value):null;
+  var out=$('resultBody'), sat=$('sat').checked;
+  $('resultCard').classList.remove('hidden');
+  if(!a){ out.innerHTML='<div class="err">「'+r.f1[0]+'」を入れてください。</div>'; $('memoCard').classList.add('hidden'); return; }
+  if(b && b<a){ out.innerHTML='<div class="err">「'+r.f2[0]+'」が「'+r.f1[0]+'」より前になっています。日付を確認してください。</div>'; $('memoCard').classList.add('hidden'); return; }
+  var res=r.calc(a,b,kid());
+  var html='';
+  if(!res.day){
+    // 2つ目の日付が未入力（まだ熱がある等）
+    var k2=r.k2(kid());
+    var lastB=addDays(res.a,-(k2+1)); // この日までに解熱すれば「発症後5日」側で決まる
+    html+='<div class="big"><div class="lbl">いまわかっていること</div><div class="date" style="font-size:1.5rem">'+jp(res.a)+'より前は登校できません</div></div>';
+    html+='<div class="note">'+r.n2+'日が <b>'+jp(lastB)+'まで</b> なら → 最短 <b>'+jp(res.a)+'</b> から。<br>それより遅れたら、'+r.n2+'日の'+(k2+1)+'日後から登校できます。<br>'+r.f2[0]+'が決まったら入力して、もう一度計算してください。</div>';
+    html+=dayList(a,b,res.a,sat,r);
+    out.innerHTML=html; buildMemo(r,a,null,null,null); return;
+  }
+  var first=res.day, closed=isClosed(first,sat), go=nextOpen(first,sat);
+  html+='<div class="big"><div class="lbl">'+(res.soft?'登校できる目安':'最短で登校できる日')+'</div><div class="date">'+jp(first)+'</div>';
+  if(closed) html+='<div class="sub">この日は<b>'+closed+'</b>なので、実際の登校は <b>'+jp(go)+'</b> から</div>';
+  html+='</div>';
+  if(res.b && key!=='covidAsym'){
+    var which = +res.a===+res.b ? '「'+r.n1+'後'+r.k1+'日」と「'+r.n2+'後'+r.k2(kid())+'日」が同じ日に満たされます。' :
+      (res.a>res.b ? '「'+r.n1+'後'+r.k1+'日」のほうが遅いので、こちらで決まりました。' : '「'+r.n2+'後'+r.k2(kid())+'日」のほうが遅いので、こちらで決まりました。');
+    html+='<p style="font-size:.9rem;margin:6px 0">'+which+'</p>';
+  }
+  if(res.soft) html+='<div class="note">この病気は日数ではなく「状態」で決まります。医師に消えた（かさぶたになった）ことを確認してもらった次の日を目安にしています。医師が当日からよいと言えば当日から登校できます。</div>';
+  if(r.extra) html+='<div class="note">'+r.extra+'</div>';
+  if(key==='covid') html+='<p class="hint">発症から10日たつまでは、マスクの着用などが勧められています。</p>';
+  html+=dayList(a,b,first,sat,r);
+  out.innerHTML=html;
+  buildMemo(r,a,b,first,go);
+  $('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function dayList(a,b,first,sat,r){
+  var end=addDays(nextOpen(first,sat),1);
+  var h='<div class="legend"><span style="--c:var(--stop)">出席停止</span><span style="--c:var(--ok)">登校OK</span><span style="--c:var(--off)">休みの日（OK後）</span></div><ul class="days">';
+  for(var d=a; d<=end; d=addDays(d,1)){
+    var n1=diffDays(a,d), parts=[r.n1+n1+'日目'];
+    if(b && d>=b) parts.push(r.n2+diffDays(b,d)+'日目');
+    var hol=holidayName(d), cl=isClosed(d,sat);
+    if(hol) parts.push(hol);
+    var cls, s;
+    if(d<first){ cls='stop'; s='出席停止'; }
+    else if(cl){ cls='offok'; s='OK（'+cl.replace('曜','')+'休）'; }
+    else { cls='ok'; s='登校OK'; }
+    if(+d===+nextOpen(first,sat)) cls+=' first';
+    h+='<li class="'+cls+'"><span class="d">'+(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')</span><span class="c">'+parts.join('・')+'</span><span class="s">'+s+'</span></li>';
+  }
+  return h+'</ul>';
+}
+
+var memoBase={};
+function buildMemo(r,a,b,first,go){
+  memoBase={r:r,a:a,b:b,first:first,go:go};
+  $('memoCard').classList.remove('hidden');
+  renderMemo();
+}
+function renderMemo(){
+  var m=memoBase; if(!m.r) return;
+  var name=$('childName').value.trim();
+  var t='【出席停止のご連絡】\n';
+  if(name) t+='名前：'+name+'\n';
+  t+='病名：'+m.r.name+'（医療機関で診断）\n';
+  t+=m.r.f1[0]+'：'+jp(m.a)+'\n';
+  if(m.r.f2) t+=m.r.f2[0]+'：'+(m.b?jp(m.b):'まだです（決まりしだい連絡します）')+'\n';
+  if(m.go) t+='登校予定日：'+jp(m.go)+'から（学校保健安全法施行規則第19条の基準による）\n';
+  t+='※医師の指示があればそれに従います。必要な書類があれば教えてください。';
+  $('memo').value=t;
+}
+function copyMemo(){
+  var t=$('memo').value, msg=$('copied');
+  function done(){ msg.textContent='コピーしました。連絡アプリやメールに貼りつけてください。'; }
+  function fallback(){ try{ $('memo').select(); document.execCommand('copy'); done(); }catch(e){ msg.textContent='コピーできませんでした。長押しで選んでコピーしてください。'; } }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done,fallback); } else fallback();
+}
+
+if(typeof document!=='undefined' && document.getElementById('disease')){
+  restore(); refreshForm();
+  document.querySelectorAll('#ageSeg button').forEach(function(b){ b.addEventListener('click',function(){ state.age=b.dataset.age; refreshForm(); if(!$('resultCard').classList.contains('hidden')) calc(); else store(); }); });
+  $('disease').addEventListener('change',function(){ $('resultCard').classList.add('hidden'); $('memoCard').classList.add('hidden'); refreshForm(); store(); });
+  $('asym').addEventListener('change',function(){ refreshForm(); store(); });
+  $('sat').addEventListener('change',function(){ if(!$('resultCard').classList.contains('hidden')) calc(); else store(); });
+  $('calcBtn').addEventListener('click',calc);
+  $('childName').addEventListener('input',renderMemo);
+  $('copyBtn').addEventListener('click',copyMemo);
+}
+</script>
+</body>
+</html>
